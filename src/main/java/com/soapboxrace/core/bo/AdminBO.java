@@ -18,6 +18,8 @@ import com.soapboxrace.core.jpa.UserEntity;
 import com.soapboxrace.core.xmpp.OpenFireSoapBoxCli;
 import com.soapboxrace.core.xmpp.XmppChat;
 
+import com.soapboxrace.core.bo.util.DiscordWebhook;
+
 import javax.ejb.EJB;
 import javax.ejb.Stateless;
 import java.time.LocalDateTime;
@@ -34,6 +36,12 @@ public class AdminBO {
     private UserDAO userDao;
 
     @EJB
+    private DiscordWebhook discord;
+    
+    @EJB
+	private ParameterBO parameterBO;
+
+    @EJB
     private BanDAO banDAO;
 
     @EJB
@@ -45,9 +53,13 @@ public class AdminBO {
     public void sendCommand(Long personaId, Long abuserPersonaId, String command) {
         CommandInfo commandInfo = CommandInfo.parse(command);
         PersonaEntity personaEntity = personaDao.findById(abuserPersonaId);
+		PersonaEntity personaEntity1 = personaDao.findById(personaId);
 
-        if (personaEntity == null)
-            return;
+		if (personaEntity == null && personaEntity1 == null)
+			return;
+
+        String constructMsg = "[ " + personaEntity.getName() + " ] has been %s by [ " + personaEntity1.getName() + " ].";
+        String constructMsg_ds = "**" + personaEntity.getName() + "** has been %s by **" + personaEntity1.getName() + "**";
 
         switch (commandInfo.action) {
             case BAN:
@@ -58,10 +70,28 @@ public class AdminBO {
 
                 sendBan(personaEntity, personaDao.findById(personaId), commandInfo.timeEnd, commandInfo.reason);
                 openFireSoapBoxCli.send(XmppChat.createSystemMessage("Banned user!"), personaId);
+
+				if(parameterBO.getStrParam("DISCORD_WEBHOOK_BANREPORT_URL") != null) {
+					discord.sendMessage(constructMsg_ds.replace("%s", "banned"), 
+						parameterBO.getStrParam("DISCORD_WEBHOOK_BANREPORT_URL"), 
+						parameterBO.getStrParam("DISCORD_WEBHOOK_BANREPORT_NAME", "Botte"),
+						0xff0000
+					);
+				}
+
                 break;
             case KICK:
                 sendKick(personaEntity.getUser().getId(), personaEntity.getPersonaId());
                 openFireSoapBoxCli.send(XmppChat.createSystemMessage("Kicked user!"), personaId);
+
+				if(parameterBO.getStrParam("DISCORD_WEBHOOK_BANREPORT_URL") != null) {
+					discord.sendMessage(constructMsg_ds.replace("%s", "kicked"), 
+						parameterBO.getStrParam("DISCORD_WEBHOOK_BANREPORT_URL"), 
+						parameterBO.getStrParam("DISCORD_WEBHOOK_BANREPORT_NAME", "Botte"),
+						0xfff200
+					);
+				}
+
                 break;
             case UNBAN:
                 BanEntity existingBan;
@@ -69,6 +99,14 @@ public class AdminBO {
                     openFireSoapBoxCli.send(XmppChat.createSystemMessage("User is not banned!"), personaId);
                     break;
                 }
+
+                if(parameterBO.getStrParam("DISCORD_WEBHOOK_BANREPORT_URL") != null) {
+					discord.sendMessage(constructMsg_ds.replace("%s", "unbanned"), 
+						parameterBO.getStrParam("DISCORD_WEBHOOK_BANREPORT_URL"), 
+						parameterBO.getStrParam("DISCORD_WEBHOOK_BANREPORT_NAME", "Botte"),
+						0x1aff00
+					);
+				}
 
                 banDAO.delete(existingBan);
                 openFireSoapBoxCli.send(XmppChat.createSystemMessage("Unbanned user!"), personaId);

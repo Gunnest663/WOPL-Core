@@ -18,6 +18,13 @@ import javax.ejb.EJB;
 import javax.ws.rs.*;
 import javax.ws.rs.core.MediaType;
 
+import com.soapboxrace.core.bo.util.DiscordWebhook;
+import com.soapboxrace.core.jpa.PersonaEntity;
+import com.soapboxrace.core.jpa.EventEntity;
+import com.soapboxrace.core.jpa.LobbyEntity;
+import com.soapboxrace.core.dao.PersonaDAO;
+import com.soapboxrace.core.dao.LobbyDAO;
+
 @Path("/matchmaking")
 public class MatchMaking {
 
@@ -35,6 +42,18 @@ public class MatchMaking {
 
     @EJB
     private MatchmakingBO matchmakingBO;
+
+	@EJB
+    private DiscordWebhook discord;
+    
+    @EJB
+    private ParameterBO parameterBO;
+    
+    @EJB
+    private PersonaDAO personaDAO;
+
+    @EJB
+    private LobbyDAO lobbyDAO;
 
     @PUT
     @Secured
@@ -118,8 +137,37 @@ public class MatchMaking {
     @Produces(MediaType.APPLICATION_XML)
     public LobbyInfo acceptInvite(@HeaderParam("securityToken") String securityToken,
                                   @QueryParam("lobbyInviteId") Long lobbyInviteId) {
+
         Long activePersonaId = tokenSessionBO.getActivePersonaId(securityToken);
         tokenSessionBO.setActiveLobbyId(securityToken, lobbyInviteId);
+        
+        LobbyEntity lobbyInformation = lobbyDAO.findById(lobbyInviteId);
+		System.out.println(lobbyInformation.getPersonaId() + " == " + activePersonaId);
+		if(activePersonaId.equals(lobbyInformation.getPersonaId())) {
+			System.out.println("Passed!");
+
+			//eventname
+			EventEntity eventInformation = lobbyInformation.getEvent();
+			String eventNameFull = eventInformation.getName();
+			String eventName = eventNameFull.split("\\(")[0];
+
+			//personaname
+			PersonaEntity personaEntity = personaDAO.findById(activePersonaId);
+			
+			//construct message
+			String msg = "[" + personaEntity.getName() + "] is looking for racers on " + eventName;
+			String msg_ds = "**" + personaEntity.getName() + "** is looking for racers on **" + eventName + "**";
+
+			//send to discord
+			if(parameterBO.getStrParam("DISCORD_WEBHOOK_LOBBY_URL") != null) {
+				discord.sendMessage(msg_ds, 
+					parameterBO.getStrParam("DISCORD_WEBHOOK_LOBBY_URL"), 
+					parameterBO.getStrParam("DISCORD_WEBHOOK_LOBBY_NAME", "Botte"),
+					0xbb00ff
+				);
+			}
+        }
+
         return lobbyBO.acceptinvite(activePersonaId, lobbyInviteId);
     }
 

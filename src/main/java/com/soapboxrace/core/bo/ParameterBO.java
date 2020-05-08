@@ -43,18 +43,17 @@ public class ParameterBO {
      * Loads parameters from the database
      */
     public void loadParameters() {
-        parameterMap.clear();
-
-        for (ParameterEntity parameterEntity : parameterDao.findAll()) {
-            if (parameterEntity.getValue() != null)
-                parameterMap.put(parameterEntity.getName(), parameterEntity.getValue());
-        }
-
-        System.out.println("Loaded " + parameterMap.size() + " parameters from database");
+        System.out.println("Deprecated");
     }
 
     private String getParameter(String name) {
-        return parameterMap.get(name);
+        try {
+			ParameterEntity findById = parameterDao.findById(name);
+			return findById.getValue();
+		} catch (Exception e) {
+            System.out.println("Cannot find " + name + " parameters on database");
+		}
+		return null;
     }
 
     public int getCarLimit(String securityToken) {
