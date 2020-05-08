@@ -90,11 +90,7 @@ public class RewardBO {
         return new RewardVO(enableEconomy, enableReputation);
     }
 
-    public void applyRaceReward(Integer exp, Integer cash, PersonaEntity personaEntity) {
-        applyRaceReward(exp, cash, personaEntity, true);
-    }
-
-    public void applyRaceReward(Integer exp, Integer cash, PersonaEntity personaEntity, boolean isInEvent) {
+    public void applyRaceReward(Integer exp, Integer cash, PersonaEntity personaEntity, boolean isInEvent, AchievementTransaction achievementTransaction) {
         int maxLevel = parameterBO.getMaxLevel(personaEntity.getUser());
         if (parameterBO.getBoolParam("ENABLE_ECONOMY")) {
             double newCash = personaEntity.getCash() + cash;
@@ -128,10 +124,11 @@ public class RewardBO {
         }
         personaDao.update(personaEntity);
 
-        AchievementProgressionContext progressionContext = new AchievementProgressionContext(cash, exp,
-                personaEntity.getLevel(), personaEntity.getScore(), 0, hasLevelChanged, false, false, isInEvent);
-
-        achievementBO.updateAchievements(personaEntity, "PROGRESSION", Map.of("persona", personaEntity, "progression", progressionContext));
+        if (achievementTransaction != null) {
+            AchievementProgressionContext progressionContext = new AchievementProgressionContext(cash, exp,
+                    personaEntity.getLevel(), personaEntity.getScore(), 0, hasLevelChanged, false, false, isInEvent);
+            achievementTransaction.add("PROGRESSION", Map.of("persona", personaEntity, "progression", progressionContext));
+        }
     }
 
     public void setTopSpeedReward(EventEntity eventEntity, float topSpeed, RewardVO rewardVO) {

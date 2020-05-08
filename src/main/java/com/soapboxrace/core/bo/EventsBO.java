@@ -134,15 +134,17 @@ public class EventsBO {
 
         if (!treasureHuntEntity.getIsStreakBroken()) {
             // active streak -> you get rewards for your streak, no need to revive
+            AchievementTransaction transaction = achievementBO.createTransaction(activePersonaId);
             Integer originalStreak = treasureHuntEntity.getStreak();
-            Accolades accolades = getTreasureHuntAccolades(activePersonaId, treasureHuntEntity, true);
+            Accolades accolades = getTreasureHuntAccolades(activePersonaId, treasureHuntEntity, transaction, true);
             treasureHuntEntity.setSeed(new Random().nextInt());
             treasureHuntEntity.setIsStreakBroken(false);
             treasureHuntEntity.setStreak(treasureHuntEntity.getStreak() + 1);
             treasureHuntEntity.setThDate(LocalDate.now());
             treasureHuntEntity.setCompleted(true);
             treasureHuntDao.update(treasureHuntEntity);
-            updateTreasureHuntStreak(personaEntity, treasureHuntEntity, !treasureHuntEntity.getStreak().equals(originalStreak));
+            updateTreasureHuntStreak(personaEntity, treasureHuntEntity, transaction, !treasureHuntEntity.getStreak().equals(originalStreak));
+            achievementBO.commitTransaction(personaEntity, transaction);
             return accolades;
         }
 
@@ -150,7 +152,7 @@ public class EventsBO {
 
         if (isCoinCollected) {
             // we don't want to give the driver a reward just yet
-            return getTreasureHuntAccolades(activePersonaId, treasureHuntEntity, false);
+            return getTreasureHuntAccolades(activePersonaId, treasureHuntEntity, null, false);
         }
 
         // if we get here, the driver hasn't revived their streak
@@ -159,8 +161,11 @@ public class EventsBO {
         treasureHuntEntity.setThDate(LocalDate.now());
         treasureHuntEntity.setCompleted(true);
         treasureHuntDao.update(treasureHuntEntity);
-        updateTreasureHuntStreak(personaEntity, treasureHuntEntity, true);
-        return getTreasureHuntAccolades(activePersonaId, treasureHuntEntity, true);
+        AchievementTransaction transaction = achievementBO.createTransaction(activePersonaId);
+        updateTreasureHuntStreak(personaEntity, treasureHuntEntity, transaction, true);
+        Accolades accolades = getTreasureHuntAccolades(activePersonaId, treasureHuntEntity, transaction, true);
+        achievementBO.commitTransaction(personaEntity, transaction);
+        return accolades;
     }
 
     private TreasureHuntEventSession createNewTreasureHunt(TreasureHuntEntity treasureHuntEntity, Boolean isBroken) {
@@ -174,7 +179,7 @@ public class EventsBO {
         return getTreasureHuntEventSession(treasureHuntEntity);
     }
 
-    private Accolades getTreasureHuntAccolades(Long activePersonaId, TreasureHuntEntity treasureHuntEntity, boolean giveReward) {
+    private Accolades getTreasureHuntAccolades(Long activePersonaId, TreasureHuntEntity treasureHuntEntity, AchievementTransaction achievementTransaction, boolean giveReward) {
         PersonaEntity personaEntity = personaDao.findById(activePersonaId);
         TreasureHuntConfigEntity treasureHuntConfigEntity =
                 treasureHuntConfigDAO.findForStreak(treasureHuntEntity.getStreak());
@@ -207,17 +212,17 @@ public class EventsBO {
             rewardBO.setSkillMultiplierReward(personaEntity, rewardVO, SkillModRewardType.EXPLORER);
             rewardBO.setAmplifierReward(personaEntity, rewardVO);
 
-            rewardBO.applyRaceReward(rewardVO.getRep(), rewardVO.getCash(), personaEntity, false);
+            rewardBO.applyRaceReward(rewardVO.getRep(), rewardVO.getCash(), personaEntity, false, achievementTransaction);
         }
 
         return rewardBO.getAccolades(personaEntity, treasureHuntEntity, treasureHuntConfigEntity,
                 rewardVO, giveReward);
     }
 
-    private void updateTreasureHuntStreak(PersonaEntity personaEntity, TreasureHuntEntity treasureHuntEntity, boolean streakChanged) {
+    private void updateTreasureHuntStreak(PersonaEntity personaEntity, TreasureHuntEntity treasureHuntEntity, AchievementTransaction achievementTransaction, boolean streakChanged) {
         AchievementProgressionContext progressionContext = new AchievementProgressionContext(0, 0,
                 personaEntity.getLevel(), personaEntity.getScore(), treasureHuntEntity.getStreak(), false, false, streakChanged, false);
 
-        achievementBO.updateAchievements(personaEntity, "PROGRESSION", Map.of("persona", personaEntity, "progression", progressionContext));
+        achievementTransaction.add("PROGRESSION", Map.of("persona", personaEntity, "progression", progressionContext));
     }
 }

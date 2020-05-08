@@ -143,10 +143,13 @@ public class BasketBO {
                 CarClassesEntity carClassesEntity =
                         carClassesDAO.findById(carSlotEntity.getOwnedCar().getCustomCar().getName());
 
+                AchievementTransaction transaction = achievementBO.createTransaction(personaEntity.getPersonaId());
+
                 if (carClassesEntity != null) {
                     AchievementCommerceContext commerceContext = new AchievementCommerceContext(carClassesEntity,
                             AchievementCommerceContext.CommerceType.CAR_PURCHASE);
-                    achievementBO.updateAchievements(personaEntity, "COMMERCE", Map.of("persona", personaEntity, "carSlot", carSlotEntity, "commerceCtx", commerceContext));
+                    transaction.add("COMMERCE", Map.of("persona", personaEntity, "carSlot", carSlotEntity, "commerceCtx", commerceContext));
+                    achievementBO.commitTransaction(personaEntity, transaction);
                 }
 
                 personaBo.changeDefaultCar(personaEntity, carSlotEntity.getOwnedCar().getId());

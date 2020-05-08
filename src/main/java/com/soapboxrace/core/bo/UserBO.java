@@ -203,7 +203,9 @@ public class UserBO {
             personaEntity.setLastLogin(LocalDateTime.now());
 
             personaDAO.update(personaEntity);
-            achievementBO.updateAchievements(personaEntity, "LOGIN", Map.of("persona", personaEntity));
+            AchievementTransaction transaction = achievementBO.createTransaction(personaId);
+            transaction.add("LOGIN", Map.of("persona", personaEntity));
+            achievementBO.commitTransaction(personaEntity, transaction);
         }
     }
 
