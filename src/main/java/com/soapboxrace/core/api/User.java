@@ -77,6 +77,12 @@ public class User {
         String randomUUID = tokenBO.createToken(userId, sr.getRemoteHost());
         UserInfo userInfo = userBO.getUserById(userId);
         userInfo.getUser().setSecurityToken(randomUUID);
+
+        if(userEntity.isPremium()) {
+            userInfo.getUser().setFullGameAccess(true);
+            userInfo.getUser().setIsComplete(true);
+        }
+
         userBO.createXmppUser(userInfo);
         return Response.ok(userInfo).build();
     }
