@@ -144,7 +144,7 @@ public class DriverPersonaBO {
                 BadgePacket badgePacket = new BadgePacket();
                 badgePacket.setAchievementRankId(personaAchievementRankEntity.getAchievementRankEntity().getId().intValue());
                 badgePacket.setBadgeDefinitionId(personaBadgeEntity.getBadgeDefinitionEntity().getId().intValue());
-                badgePacket.setIsRare(personaAchievementRankEntity.getAchievementRankEntity().getRarity() <= 0.05f);
+                badgePacket.setIsRare(personaAchievementRankEntity.getAchievementRankEntity().isRare());
                 badgePacket.setRarity(personaAchievementRankEntity.getAchievementRankEntity().getRarity());
                 badgePacket.setSlotId(personaBadgeEntity.getSlot().shortValue());
                 arrayOfBadgePacket.getBadgePacket().add(badgePacket);
@@ -184,6 +184,7 @@ public class DriverPersonaBO {
 
     public void deletePersona(Long personaId) {
         PersonaEntity personaEntity = personaDao.findById(personaId);
+        UserEntity user = personaEntity.getUser();
         List<CarSlotEntity> carSlots = carSlotDAO.findByPersonaId(personaId);
         for (CarSlotEntity carSlotEntity : carSlots) {
             carSlotDAO.delete(carSlotEntity);
@@ -199,6 +200,8 @@ public class DriverPersonaBO {
         socialRelationshipDAO.deleteAllByPersonaId(personaId);
 
         personaDao.delete(personaEntity);
+        user.setSelectedPersonaIndex(Math.max(0, user.getSelectedPersonaIndex() - 1));
+        userDao.update(user);
     }
 
     public PersonaPresence getPersonaPresenceByName(String name) {

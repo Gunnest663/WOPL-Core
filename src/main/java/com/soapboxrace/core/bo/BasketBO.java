@@ -12,8 +12,11 @@ import com.soapboxrace.core.dao.*;
 import com.soapboxrace.core.engine.EngineException;
 import com.soapboxrace.core.engine.EngineExceptionCode;
 import com.soapboxrace.core.jpa.*;
-import com.soapboxrace.jaxb.http.*;
-import com.soapboxrace.jaxb.util.UnmarshalXML;
+import com.soapboxrace.jaxb.http.ArrayOfOwnedCarTrans;
+import com.soapboxrace.jaxb.http.CommerceResultStatus;
+import com.soapboxrace.jaxb.http.CommerceResultTrans;
+import com.soapboxrace.jaxb.http.OwnedCarTrans;
+import com.soapboxrace.jaxb.util.JAXBUtility;
 
 import javax.ejb.EJB;
 import javax.ejb.Stateless;
@@ -139,19 +142,6 @@ public class BasketBO {
         if (performPersonaTransaction(personaEntity, productEntity)) {
             try {
                 CarSlotEntity carSlotEntity = addCar(productEntity, personaEntity);
-
-                CarClassesEntity carClassesEntity =
-                        carClassesDAO.findById(carSlotEntity.getOwnedCar().getCustomCar().getName());
-
-                AchievementTransaction transaction = achievementBO.createTransaction(personaEntity.getPersonaId());
-
-                if (carClassesEntity != null) {
-                    AchievementCommerceContext commerceContext = new AchievementCommerceContext(carClassesEntity,
-                            AchievementCommerceContext.CommerceType.CAR_PURCHASE);
-                    transaction.add("COMMERCE", Map.of("persona", personaEntity, "carSlot", carSlotEntity, "commerceCtx", commerceContext));
-                    achievementBO.commitTransaction(personaEntity, transaction);
-                }
-
                 personaBo.changeDefaultCar(personaEntity, carSlotEntity.getOwnedCar().getId());
                 personaDao.update(personaEntity);
 
@@ -186,13 +176,12 @@ public class BasketBO {
                     throw new EngineException("Could not find card pack with name: " + bundleProduct.getEntitlementTag() + " (product ID: " + productId + ")", EngineExceptionCode.LuckyDrawCouldNotDrawProduct, true);
                 }
 
-                ArrayOfCommerceItemTrans arrayOfCommerceItemTrans = new ArrayOfCommerceItemTrans();
-
                 for (CardPackItemEntity cardPackItemEntity : cardPackEntity.getItems()) {
-                    itemRewardBO.loadReward(personaEntity.getPersonaId(), cardPackItemEntity.getScript(), arrayOfCommerceItemTrans);
+                    itemRewardBO.convertRewards(
+                            itemRewardBO.getRewards(personaEntity, cardPackItemEntity.getScript()),
+                            commerceResultTrans
+                    );
                 }
-
-                commerceResultTrans.setCommerceItems(arrayOfCommerceItemTrans);
 
                 return CommerceResultStatus.SUCCESS;
             } catch (EngineException e) {
@@ -234,7 +223,7 @@ public class BasketBO {
         }
 
         if (performPersonaTransaction(personaEntity, productEntity)) {
-            addAmplifier(personaEntity.getPersonaId(), productEntity);
+            addAmplifier(personaEntity, productEntity);
             return CommerceResultStatus.SUCCESS;
         }
 
@@ -287,10 +276,21 @@ public class BasketBO {
         performanceBO.calcNewCarClass(carSlotEntity.getOwnedCar().getCustomCar());
 
         if (isRental && canAddAmplifier(personaEntity.getPersonaId(), "INSURANCE_AMPLIFIER")) {
-            addAmplifier(personaEntity.getPersonaId(), productDao.findByEntitlementTag("INSURANCE_AMPLIFIER"));
+            addAmplifier(personaEntity, productDao.findByEntitlementTag("INSURANCE_AMPLIFIER"));
         }
 
-//        System.out.println("baskets: " + personaEntity.getPersonaId() + " has " + getPersonasCar(personaEntity.getPersonaId()).size() + " cars");
+        CarClassesEntity carClassesEntity =
+                carClassesDAO.findById(carSlotEntity.getOwnedCar().getCustomCar().getName());
+
+        AchievementTransaction transaction = achievementBO.createTransaction(personaEntity.getPersonaId());
+
+        if (carClassesEntity != null) {
+            AchievementCommerceContext commerceContext = new AchievementCommerceContext(carClassesEntity,
+                    AchievementCommerceContext.CommerceType.CAR_PURCHASE);
+            transaction.add("COMMERCE", Map.of("persona", personaEntity, "carSlot", carSlotEntity, "commerceCtx", commerceContext));
+            achievementBO.commitTransaction(personaEntity, transaction);
+        }
+
         return carSlotEntity;
     }
 
@@ -371,14 +371,14 @@ public class BasketBO {
         return inventoryItemDao.findAllByPersonaIdAndEntitlementTag(personaId, entitlementTag).isEmpty();
     }
 
-    private void addAmplifier(Long personaId, ProductEntity productEntity) {
-        InventoryEntity inventoryEntity = inventoryBO.getInventory(personaId);
+    private void addAmplifier(PersonaEntity personaEntity, ProductEntity productEntity) {
+        InventoryEntity inventoryEntity = inventoryBO.getInventory(personaEntity);
         inventoryBO.addInventoryItem(inventoryEntity, productEntity.getProductId());
 
         AmplifierEntity amplifierEntity = amplifierDAO.findAmplifierByHash(productEntity.getHash());
 
         if (amplifierEntity.getAmpType().equals("INSURANCE")) {
-            personaBo.repairAllCars(personaId);
+            personaBo.repairAllCars(personaEntity);
         }
     }
 
@@ -390,7 +390,7 @@ public class BasketBO {
             throw new IllegalArgumentException(String.format("No basket definition for %s", productId));
         }
         String ownedCarTrans = basketDefinitionEntity.getOwnedCarTrans();
-        OwnedCarTrans ownedCarTrans1 = UnmarshalXML.unMarshal(ownedCarTrans, OwnedCarTrans.class);
+        OwnedCarTrans ownedCarTrans1 = JAXBUtility.unMarshal(ownedCarTrans, OwnedCarTrans.class);
 
         if (productEntity.getDurationMinute() != 0) {
             ownedCarTrans1.setOwnershipType("RentalCar");

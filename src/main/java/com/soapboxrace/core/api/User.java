@@ -48,6 +48,9 @@ public class User {
     @EJB
     private PresenceBO presenceBO;
 
+    @EJB
+    private MatchmakingBO matchmakingBO;
+
     @POST
     @Secured
     @Path("GetPermanentSession")
@@ -96,6 +99,9 @@ public class User {
                                      @QueryParam("personaId") Long personaId) {
         tokenBO.setActivePersonaId(securityToken, personaId, false);
         userBO.secureLoginPersona(userId, personaId);
+        // Question: Why is this here?
+        // Answer: Weird things happen sometimes.
+        matchmakingBO.removePlayerFromQueue(personaId);
         return "";
     }
 
@@ -109,6 +115,7 @@ public class User {
         long activePersonaId = tokenBO.getActivePersonaId(securityToken);
         tokenBO.setActivePersonaId(securityToken, 0L, true);
         presenceBO.removePresence(activePersonaId);
+        matchmakingBO.removePlayerFromQueue(personaId);
 
         return "";
     }

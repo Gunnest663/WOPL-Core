@@ -26,7 +26,7 @@ public class UserEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "EMAIL", length = 255)
+    @Column(name = "EMAIL")
     private String email;
 
     @Column(name = "PASSWORD", length = 50)
@@ -57,6 +57,9 @@ public class UserEntity {
 
     @Column(name = "lastLogin")
     private LocalDateTime lastLogin;
+
+    @Column(columnDefinition = "integer default 0")
+    private Integer selectedPersonaIndex = 0;
 
     public Long getId() {
         return this.id;
@@ -110,6 +113,7 @@ public class UserEntity {
         this.premium = premium;
     }
 
+    @SuppressWarnings("BooleanMethodIsAlwaysInverted")
     public boolean ownsPersona(Long id) {
         return this.personas.stream().anyMatch(p -> p.getPersonaId().equals(id));
     }
@@ -154,4 +158,11 @@ public class UserEntity {
         this.gameHardwareHash = gameHardwareHash;
     }
 
+    public Integer getSelectedPersonaIndex() {
+        return selectedPersonaIndex;
+    }
+
+    public void setSelectedPersonaIndex(Integer selectedPersonaIndex) {
+        this.selectedPersonaIndex = selectedPersonaIndex;
+    }
 }

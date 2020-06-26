@@ -91,8 +91,6 @@ public class EventResultTeamEscapeBO extends EventResultBO<TeamEscapeArbitration
         eventDataEntity.setTopSpeed(teamEscapeArbitrationPacket.getTopSpeed());
         eventSessionEntity.setEnded(System.currentTimeMillis());
 
-        eventDataDao.update(eventDataEntity);
-
         ArrayOfTeamEscapeEntrantResult arrayOfTeamEscapeEntrantResult = new ArrayOfTeamEscapeEntrantResult();
         for (EventDataEntity racer : eventDataDao.getRacers(eventSessionId)) {
             TeamEscapeEntrantResult teamEscapeEntrantResult = new TeamEscapeEntrantResult();
@@ -119,7 +117,7 @@ public class EventResultTeamEscapeBO extends EventResultBO<TeamEscapeArbitration
         PersonaEntity personaEntity = personaDAO.findById(activePersonaId);
         AchievementTransaction transaction = achievementBO.createTransaction(activePersonaId);
         TeamEscapeEventResult teamEscapeEventResult = new TeamEscapeEventResult();
-        teamEscapeEventResult.setAccolades(rewardTeamEscapeBO.getTeamEscapeAccolades(activePersonaId,
+        teamEscapeEventResult.setAccolades(rewardTeamEscapeBO.getAccolades(activePersonaId,
                 teamEscapeArbitrationPacket, eventDataEntity, eventSessionEntity, transaction));
         teamEscapeEventResult
                 .setDurability(carDamageBO.induceCarDamage(activePersonaId, teamEscapeArbitrationPacket,
@@ -137,6 +135,12 @@ public class EventResultTeamEscapeBO extends EventResultBO<TeamEscapeArbitration
         achievementBO.commitTransaction(personaEntity, transaction);
 
         eventSessionDao.update(eventSessionEntity);
+        eventDataDao.update(eventDataEntity);
+
+        if (eventSessionEntity.getLobby() != null && !eventSessionEntity.getLobby().getIsPrivate()) {
+            matchmakingBO.resetIgnoredEvents(activePersonaId);
+        }
+
         return teamEscapeEventResult;
     }
 

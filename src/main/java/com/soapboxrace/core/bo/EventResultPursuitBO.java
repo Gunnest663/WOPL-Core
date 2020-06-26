@@ -60,7 +60,6 @@ public class EventResultPursuitBO extends EventResultBO<PursuitArbitrationPacket
             throw new EngineException("Session already completed.", EngineExceptionCode.SecurityKickedArbitration, true);
         }
 
-        boolean isBusted = pursuitArbitrationPacket.getFinishReason() == 266;
         prepareBasicEventData(eventDataEntity, activePersonaId, pursuitArbitrationPacket);
         eventDataEntity.setCopsDeployed(pursuitArbitrationPacket.getCopsDeployed());
         eventDataEntity.setCopsDisabled(pursuitArbitrationPacket.getCopsDisabled());
@@ -74,16 +73,16 @@ public class EventResultPursuitBO extends EventResultBO<PursuitArbitrationPacket
         eventDataEntity.setSumOfJumpsDurationInMilliseconds(pursuitArbitrationPacket.getSumOfJumpsDurationInMilliseconds());
         eventDataEntity.setTopSpeed(pursuitArbitrationPacket.getTopSpeed());
         eventSessionEntity.setEnded(System.currentTimeMillis());
-        eventDataDao.update(eventDataEntity);
-        eventSessionDao.update(eventSessionEntity);
 
         pursuitArbitrationPacket.setRank(1); // there's only ever 1 player, and the game sets rank to 0... idk why
+
+        boolean isBusted = pursuitArbitrationPacket.getFinishReason() == 266;
 
         PersonaEntity personaEntity = personaDAO.findById(activePersonaId);
         AchievementTransaction transaction = achievementBO.createTransaction(activePersonaId);
         PursuitEventResult pursuitEventResult = new PursuitEventResult();
-        pursuitEventResult.setAccolades(rewardPursuitBO.getPursuitAccolades(activePersonaId, pursuitArbitrationPacket
-                , eventDataEntity, eventSessionEntity, isBusted, transaction));
+        pursuitEventResult.setAccolades(rewardPursuitBO.getAccolades(activePersonaId, pursuitArbitrationPacket
+                , eventDataEntity, eventSessionEntity, transaction));
         pursuitEventResult.setDurability(carDamageBO.induceCarDamage(activePersonaId, pursuitArbitrationPacket,
                 eventDataEntity.getEvent()));
         pursuitEventResult.setEventId(eventDataEntity.getEvent().getId());
@@ -103,6 +102,8 @@ public class EventResultPursuitBO extends EventResultBO<PursuitArbitrationPacket
         OwnedCarEntity ownedCarEntity = personaBO.getDefaultCarEntity(activePersonaId).getOwnedCar();
         ownedCarEntity.setHeat(isBusted ? 1 : pursuitArbitrationPacket.getHeat());
         ownedCarDAO.update(ownedCarEntity);
+        eventDataDao.update(eventDataEntity);
+        eventSessionDao.update(eventSessionEntity);
 
         return pursuitEventResult;
     }

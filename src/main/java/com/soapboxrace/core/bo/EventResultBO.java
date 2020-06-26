@@ -19,10 +19,13 @@ import java.util.Map;
 public abstract class EventResultBO<TA extends ArbitrationPacket, TR extends EventResult> {
 
     @EJB
-    protected AchievementBO achievementBO;
+    protected MatchmakingBO matchmakingBO;
 
     @EJB
     protected LobbyBO lobbyBO;
+
+    @EJB
+    protected PersonaBO personaBO;
 
     @EJB
     protected PersonaDAO personaDAO;
@@ -67,6 +70,8 @@ public abstract class EventResultBO<TA extends ArbitrationPacket, TR extends Eve
         eventDataEntity.setRank(packet.getRank());
         eventDataEntity.setPersonaId(activePersonaId);
         eventDataEntity.setEventModeId(eventDataEntity.getEvent().getEventModeId());
+        eventDataEntity.setServerTimeEnded(System.currentTimeMillis());
+        eventDataEntity.setServerTimeInMilliseconds(eventDataEntity.getServerTimeEnded() - eventDataEntity.getServerTimeStarted());
     }
 
     /**
@@ -125,7 +130,8 @@ public abstract class EventResultBO<TA extends ArbitrationPacket, TR extends Eve
                 "event", eventEntity,
                 "eventData", eventDataEntity,
                 "eventSession", eventSessionEntity,
-                "eventContext", new AchievementEventContext(EventMode.fromId(eventEntity.getEventModeId()), packet, eventSessionEntity)
+                "eventContext", new AchievementEventContext(EventMode.fromId(eventEntity.getEventModeId()), packet, eventSessionEntity),
+                "car", personaBO.getDefaultCarEntity(activePersonaId)
         ));
     }
 }

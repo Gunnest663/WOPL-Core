@@ -38,6 +38,9 @@ public class PersonaBO {
     @EJB
     private BadgeDefinitionDAO badgeDefinitionDAO;
 
+    @EJB
+    private CarDamageBO carDamageBO;
+
     public void updateBadges(Long personaId, BadgeBundle badgeBundle) {
         PersonaEntity personaEntity = personaDAO.findById(personaId);
 
@@ -83,7 +86,6 @@ public class PersonaBO {
             i++;
         }
         personaEntity.setCurCarIndex(i);
-//        System.out.println("changeDefaultCar: curCarIndex=" + i);
     }
 
     public PersonaEntity getPersonaById(Long personaId) {
@@ -94,7 +96,6 @@ public class PersonaBO {
         PersonaEntity personaEntity = personaDAO.findById(personaId);
         List<CarSlotEntity> carSlotList = getPersonasCar(personaId);
         int curCarIndex = personaEntity.getCurCarIndex();
-//        System.out.println("getDefaultCarEntity: curCarIndex=" + curCarIndex + ", carSlotList has " + carSlotList.size() + " cars");
         if (!carSlotList.isEmpty()) {
             if (curCarIndex >= carSlotList.size()) {
                 curCarIndex = carSlotList.size() - 1;
@@ -114,13 +115,13 @@ public class PersonaBO {
         return OwnedCarConverter.entity2Trans(carSlotEntity.getOwnedCar());
     }
 
-    public void repairAllCars(Long personaId) {
-        List<CarSlotEntity> carSlotEntities = getPersonasCar(personaId);
+    public void repairAllCars(PersonaEntity personaEntity) {
+        List<CarSlotEntity> carSlotEntities = getPersonasCar(personaEntity.getPersonaId());
 
         for (CarSlotEntity carSlotEntity : carSlotEntities) {
             OwnedCarEntity ownedCarEntity = carSlotEntity.getOwnedCar();
-            ownedCarEntity.setDurability(100);
-            ownedCarDAO.update(ownedCarEntity);
+
+            carDamageBO.updateDurability(ownedCarEntity, 100);
         }
     }
 

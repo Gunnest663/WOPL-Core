@@ -65,20 +65,14 @@ public class InventoryBO {
      * Finds the {@link InventoryEntity} associated with the given persona ID.
      * Creates a new inventory if one cannot be found.
      *
-     * @param personaId The ID of the persona to obtain the inventory record for.
+     * @param personaEntity The persona to obtain the inventory record for.
      * @return The obtained or created inventory record.
      * @throws com.soapboxrace.core.engine.EngineException if the given persona ID is invalid OR
      *                                                     inventory creation fails
      */
-    public InventoryEntity getInventory(Long personaId) {
-        // Ensure we have valid input
-        PersonaEntity personaEntity = personaDAO.findById(personaId);
-
-        if (personaEntity == null)
-            throw new EngineException("Cannot find persona: " + personaId, EngineExceptionCode.PersonaNotFound, true);
-
+    public InventoryEntity getInventory(PersonaEntity personaEntity) {
         // Do the important work!
-        InventoryEntity inventoryEntity = inventoryDAO.findByPersonaId(personaId);
+        InventoryEntity inventoryEntity = inventoryDAO.findByPersonaId(personaEntity.getPersonaId());
 
         if (inventoryEntity == null)
             inventoryEntity = this.createInventory(personaEntity);
@@ -103,25 +97,29 @@ public class InventoryBO {
         inventoryTrans.setInventoryItems(new ArrayOfInventoryItemTrans());
 
         for (InventoryItemEntity inventoryItemEntity : inventoryEntity.getInventoryItems()) {
-            ProductEntity productEntity = inventoryItemEntity.getProductEntity();
-
-            InventoryItemTrans inventoryItemTrans = new InventoryItemTrans();
-            inventoryItemTrans.setEntitlementTag(productEntity.getEntitlementTag());
-            inventoryItemTrans.setHash(productEntity.getHash());
-            inventoryItemTrans.setProductId(productEntity.getProductId());
-            inventoryItemTrans.setVirtualItemType(productEntity.getProductType().toLowerCase());
-            inventoryItemTrans.setStringHash("0x" + String.format("%08X", productEntity.getHash()));
-            inventoryItemTrans.setInventoryId(inventoryEntity.getId());
-            inventoryItemTrans.setRemainingUseCount(inventoryItemEntity.getRemainingUseCount());
-            inventoryItemTrans.setStatus(inventoryItemEntity.getStatus());
-            if (inventoryItemEntity.getExpirationDate() != null) {
-                inventoryItemTrans.setExpirationDate(inventoryItemEntity.getExpirationDate().format(DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss")));
-            }
-
+            InventoryItemTrans inventoryItemTrans = convertItemToItemTrans(inventoryItemEntity);
             inventoryTrans.getInventoryItems().getInventoryItemTrans().add(inventoryItemTrans);
         }
 
         return inventoryTrans;
+    }
+
+    public InventoryItemTrans convertItemToItemTrans(InventoryItemEntity inventoryItemEntity) {
+        ProductEntity productEntity = inventoryItemEntity.getProductEntity();
+        InventoryEntity inventoryEntity = inventoryItemEntity.getInventoryEntity();
+        InventoryItemTrans inventoryItemTrans = new InventoryItemTrans();
+        inventoryItemTrans.setEntitlementTag(productEntity.getEntitlementTag());
+        inventoryItemTrans.setHash(productEntity.getHash());
+        inventoryItemTrans.setProductId(productEntity.getProductId());
+        inventoryItemTrans.setVirtualItemType(productEntity.getProductType().toLowerCase());
+        inventoryItemTrans.setStringHash("0x" + String.format("%08X", productEntity.getHash()));
+        inventoryItemTrans.setInventoryId(inventoryEntity.getId());
+        inventoryItemTrans.setRemainingUseCount(inventoryItemEntity.getRemainingUseCount());
+        inventoryItemTrans.setStatus(inventoryItemEntity.getStatus());
+        if (inventoryItemEntity.getExpirationDate() != null) {
+            inventoryItemTrans.setExpirationDate(inventoryItemEntity.getExpirationDate().format(DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss")));
+        }
+        return inventoryItemTrans;
     }
 
     /**
@@ -132,6 +130,7 @@ public class InventoryBO {
      * @param productEntity   The {@link ProductEntity} to query for information when checking capacity.
      * @return {@code true} if the inventory can hold the given product, {@code false} otherwise
      */
+    @SuppressWarnings("BooleanMethodIsAlwaysInverted")
     public boolean canInventoryHold(InventoryEntity inventoryEntity, ProductEntity productEntity) {
         String productType = productEntity.getProductType().toUpperCase();
         int capacity = 0; // the specific capacity for the given type of item for the given inventory
@@ -162,6 +161,7 @@ public class InventoryBO {
      * @param productId       The ID of the product that should be added.
      * @return The new {@link InventoryItemEntity} instance.
      */
+    @SuppressWarnings("UnusedReturnValue")
     public InventoryItemEntity addInventoryItem(InventoryEntity inventoryEntity, String productId) {
         return addInventoryItem(inventoryEntity, productId, -1, null, false);
     }
@@ -174,6 +174,7 @@ public class InventoryBO {
      * @param ignoreLimits    Whether inventory limits should be ignored.
      * @return The new {@link InventoryItemEntity} instance.
      */
+    @SuppressWarnings("UnusedReturnValue")
     public InventoryItemEntity addInventoryItem(InventoryEntity inventoryEntity, String productId, boolean ignoreLimits) {
         return addInventoryItem(inventoryEntity, productId, -1, null, ignoreLimits);
     }
@@ -186,6 +187,7 @@ public class InventoryBO {
      * @param quantity        The quantity of the product to be added.
      * @return The new {@link InventoryItemEntity} instance.
      */
+    @SuppressWarnings("UnusedReturnValue")
     public InventoryItemEntity addInventoryItem(InventoryEntity inventoryEntity, String productId, int quantity) {
         return addInventoryItem(inventoryEntity, productId, quantity, null, false);
     }
@@ -199,6 +201,7 @@ public class InventoryBO {
      * @param ignoreLimits    Whether inventory limits should be ignored.
      * @return The new {@link InventoryItemEntity} instance.
      */
+    @SuppressWarnings("UnusedReturnValue")
     public InventoryItemEntity addInventoryItem(InventoryEntity inventoryEntity, String productId, int quantity, boolean ignoreLimits) {
         return addInventoryItem(inventoryEntity, productId, quantity, null, ignoreLimits);
     }
@@ -212,6 +215,7 @@ public class InventoryBO {
      * @param expirationDate  The expiration date of the inventory item as a {@link LocalDateTime}. Nullable.
      * @return The new {@link InventoryItemEntity} instance.
      */
+    @SuppressWarnings("UnusedReturnValue")
     public InventoryItemEntity addInventoryItem(InventoryEntity inventoryEntity, String productId, int quantity,
                                                 LocalDateTime expirationDate) {
         return addInventoryItem(inventoryEntity, productId, quantity, expirationDate, false);
@@ -272,6 +276,7 @@ public class InventoryBO {
      * @param quantity        The quantity of the product to be added.
      * @return The new {@link InventoryItemEntity} instance.
      */
+    @SuppressWarnings("UnusedReturnValue")
     public InventoryItemEntity addStackedInventoryItem(InventoryEntity inventoryEntity, String productId,
                                                        int quantity) {
         return addStackedInventoryItem(inventoryEntity, productId, quantity, false);
@@ -287,6 +292,7 @@ public class InventoryBO {
      * @param ignoreLimits    Whether inventory limits should be ignored.
      * @return The new {@link InventoryItemEntity} instance.
      */
+    @SuppressWarnings("UnusedReturnValue")
     public InventoryItemEntity addStackedInventoryItem(InventoryEntity inventoryEntity, String productId,
                                                        int quantity, boolean ignoreLimits) {
         ProductEntity productEntity = productDAO.findByProductId(productId);
@@ -321,8 +327,8 @@ public class InventoryBO {
      * @param hash            The hash of the item.
      * @throws EngineException if no item with the entitlement tag can be found.
      */
-    public void decreaseItemCount(InventoryEntity inventoryEntity, Integer hash) {
-        decreaseItemCount(inventoryEntity, productDAO.findByHash(hash).getEntitlementTag());
+    public InventoryItemEntity decreaseItemCount(InventoryEntity inventoryEntity, Integer hash) {
+        return decreaseItemCount(inventoryEntity, productDAO.findByHash(hash).getEntitlementTag());
     }
 
     /**
@@ -332,7 +338,7 @@ public class InventoryBO {
      * @param entitlementTag  The entitlement tag of the item.
      * @throws EngineException if no item with the entitlement tag can be found.
      */
-    public void decreaseItemCount(InventoryEntity inventoryEntity, String entitlementTag) {
+    public InventoryItemEntity decreaseItemCount(InventoryEntity inventoryEntity, String entitlementTag) {
         InventoryItemEntity existingItem =
                 inventoryItemDAO.findByInventoryIdAndEntitlementTag(inventoryEntity.getId(),
                         entitlementTag);
@@ -348,6 +354,8 @@ public class InventoryBO {
             inventoryItemDAO.delete(existingItem);
             inventoryDAO.update(inventoryEntity);
         }
+
+        return existingItem;
     }
 
     /**

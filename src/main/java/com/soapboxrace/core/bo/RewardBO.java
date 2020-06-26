@@ -44,9 +44,6 @@ public class RewardBO {
     private ProductDAO productDAO;
 
     @EJB
-    private AchievementBO achievementBO;
-
-    @EJB
     private ItemRewardBO itemRewardBO;
 
     @EJB
@@ -464,7 +461,7 @@ public class RewardBO {
 
     private LuckyDrawItem getLuckyDrawItem(PersonaEntity personaEntity, ProductEntity productEntity, int quantity) {
         LuckyDrawItem luckyDrawItem = dropBO.copyProduct2LuckyDraw(productEntity);
-        InventoryEntity inventory = inventoryBO.getInventory(personaEntity.getPersonaId());
+        InventoryEntity inventory = inventoryBO.getInventory(personaEntity);
         boolean inventoryFull = !inventoryBO.canInventoryHold(inventory,
                 productEntity);
         if (inventoryFull) {
@@ -481,6 +478,7 @@ public class RewardBO {
                 inventoryBO.addInventoryItem(inventory, productEntity.getProductId(), quantity);
             }
             luckyDrawItem.setRemainingUseCount(quantity == -1 ? productEntity.getUseCount() : quantity);
+            luckyDrawItem.setDescription(luckyDrawItem.getDescription() + " x" + luckyDrawItem.getRemainingUseCount());
         }
         return luckyDrawItem;
     }

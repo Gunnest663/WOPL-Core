@@ -94,7 +94,7 @@ public class MatchMaking {
         Long activePersonaId = tokenSessionBO.getActivePersonaId(securityToken);
         Long activeLobbyId = tokenSessionBO.getActiveLobbyId(securityToken);
         if (activeLobbyId != null && !activeLobbyId.equals(0L)) {
-            lobbyBO.deleteLobbyEntrant(activePersonaId, activeLobbyId);
+            lobbyBO.removeEntrantFromLobby(activePersonaId, activeLobbyId);
         }
         return "";
     }
@@ -126,7 +126,6 @@ public class MatchMaking {
     public String makePrivateLobby(@HeaderParam("securityToken") String securityToken,
                                    @PathParam("eventId") int eventId) {
         Long activePersonaId = tokenSessionBO.getActivePersonaId(securityToken);
-        OwnedCarTrans defaultCar = personaBO.getDefaultCar(activePersonaId);
         lobbyBO.createPrivateLobby(activePersonaId, eventId);
         return "";
     }
@@ -177,6 +176,8 @@ public class MatchMaking {
     @Produces(MediaType.APPLICATION_XML)
     public String declineInvite(@HeaderParam("securityToken") String securityToken,
                                 @QueryParam("lobbyInviteId") Long lobbyInviteId) {
+        Long activePersonaId = tokenSessionBO.getActivePersonaId(securityToken);
+        lobbyBO.declineinvite(activePersonaId, lobbyInviteId);
         return "";
     }
 

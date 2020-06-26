@@ -7,15 +7,12 @@
 package com.soapboxrace.core.api;
 
 import com.soapboxrace.core.api.util.Secured;
-import com.soapboxrace.core.bo.DriverPersonaBO;
-import com.soapboxrace.core.bo.PresenceBO;
-import com.soapboxrace.core.bo.TokenSessionBO;
-import com.soapboxrace.core.bo.UserBO;
+import com.soapboxrace.core.bo.*;
 import com.soapboxrace.core.engine.EngineException;
 import com.soapboxrace.core.engine.EngineExceptionCode;
 import com.soapboxrace.core.jpa.PersonaEntity;
 import com.soapboxrace.jaxb.http.*;
-import com.soapboxrace.jaxb.util.UnmarshalXML;
+import com.soapboxrace.jaxb.util.JAXBUtility;
 
 import javax.ejb.EJB;
 import javax.ws.rs.*;
@@ -40,6 +37,9 @@ public class DriverPersona {
 
     @EJB
     private PresenceBO presenceBO;
+
+    @EJB
+    private MatchmakingBO matchmakingBO;
 
     @GET
     @Secured
@@ -121,7 +121,7 @@ public class DriverPersona {
     @Path("/GetPersonaBaseFromList")
     @Produces(MediaType.APPLICATION_XML)
     public ArrayOfPersonaBase getPersonaBaseFromList(InputStream is) {
-        PersonaIdArray personaIdArray = UnmarshalXML.unMarshal(is, PersonaIdArray.class);
+        PersonaIdArray personaIdArray = JAXBUtility.unMarshal(is, PersonaIdArray.class);
         ArrayOfLong personaIds = personaIdArray.getPersonaIds();
         return driverPersonaBO.getPersonaBaseFromList(personaIds.getLong());
     }
@@ -135,6 +135,7 @@ public class DriverPersona {
                                         @QueryParam("presence") Long presence) {
         tokenSessionBo.verifyPersonaOwnership(securityToken, personaId);
         presenceBO.updatePresence(personaId, presence);
+        matchmakingBO.removePlayerFromQueue(personaId);
 
         return "";
     }
@@ -153,7 +154,7 @@ public class DriverPersona {
     @Produces(MediaType.APPLICATION_XML)
     public PersonaMotto updateStatusMessage(InputStream statusXml, @HeaderParam("securityToken") String securityToken
             , @Context Request request) {
-        PersonaMotto personaMotto = UnmarshalXML.unMarshal(statusXml, PersonaMotto.class);
+        PersonaMotto personaMotto = JAXBUtility.unMarshal(statusXml, PersonaMotto.class);
         tokenSessionBo.verifyPersonaOwnership(securityToken, personaMotto.getPersonaId());
 
         driverPersonaBO.updateStatusMessage(personaMotto.getMessage(), personaMotto.getPersonaId());
