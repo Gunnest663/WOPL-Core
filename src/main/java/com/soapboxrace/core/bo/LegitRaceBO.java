@@ -24,13 +24,15 @@ public class LegitRaceBO {
     public boolean isLegit(Long activePersonaId, ArbitrationPacket arbitrationPacket,
                            EventSessionEntity sessionEntity,
                            EventDataEntity dataEntity) {
+
         long minimumTime = sessionEntity.getEvent().getLegitTime();
-        boolean legit = dataEntity.getServerTimeInMilliseconds() >= minimumTime;
+        final long timeDiff = sessionEntity.getEnded() - sessionEntity.getStarted();
+        boolean legit = timeDiff >= minimumTime;
 
         if (!legit) {
             socialBo.sendReport(0L, activePersonaId, 3,
                     String.format("Abnormal event time: %d (below minimum of %d on event %d; session %d)",
-                            dataEntity.getServerTimeInMilliseconds(), minimumTime, sessionEntity.getEvent().getId(), sessionEntity.getId()),
+                    timeDiff, minimumTime, sessionEntity.getEvent().getId(), sessionEntity.getId()),
                     (int) arbitrationPacket.getCarId(), 0, arbitrationPacket.getHacksDetected());
             return false;
         }

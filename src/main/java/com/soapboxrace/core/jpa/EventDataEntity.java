@@ -64,9 +64,9 @@ public class EventDataEntity {
     private int rank;
     @Column(columnDefinition = "BIT default 0")
     private boolean isLegit;
-    private long serverTimeInMilliseconds;
+    /*private long serverTimeInMilliseconds;
     private long serverTimeStarted;
-    private long serverTimeEnded;
+    private long serverTimeEnded;*/
     private Integer carClassHash;
     private Integer carRating;
 
@@ -308,7 +308,7 @@ public class EventDataEntity {
         isLegit = legit;
     }
 
-    public long getServerTimeInMilliseconds() {
+    /*public long getServerTimeInMilliseconds() {
         return serverTimeInMilliseconds;
     }
 
@@ -330,7 +330,7 @@ public class EventDataEntity {
 
     public void setServerTimeEnded(long serverTimeEnded) {
         this.serverTimeEnded = serverTimeEnded;
-    }
+    }*/
 
     public Integer getCarClassHash() {
         return carClassHash;

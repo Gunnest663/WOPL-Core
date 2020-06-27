@@ -8,6 +8,7 @@ package com.soapboxrace.core.bo;
 
 import com.soapboxrace.core.dao.ServerInfoDAO;
 import com.soapboxrace.core.jpa.ServerInfoEntity;
+import com.soapboxrace.core.api.util.BuildInfo;
 
 import javax.ejb.EJB;
 import javax.ejb.Stateless;
@@ -27,9 +28,8 @@ public class GetServerInformationBO {
     public ServerInfoEntity getServerInformation() {
         ServerInfoEntity serverInfoEntity = serverInfoDAO.findInfo();
         serverInfoEntity.setOnlineNumber(onlineUsersBO.getNumberOfUsersOnlineNow());
-        String ticketToken = parameterBO.getStrParam("TICKET_TOKEN");
-        serverInfoEntity.setRequireTicket(ticketToken != null);
-        serverInfoEntity.setServerVersion("1.0.3-snapshot");
+        serverInfoEntity.setRequireTicket(parameterBO.getStrParam("TICKET_TOKEN") != null);
+        serverInfoEntity.setServerVersion("WOPL/" + BuildInfo.getCommitID());
 
         return serverInfoEntity;
     }
