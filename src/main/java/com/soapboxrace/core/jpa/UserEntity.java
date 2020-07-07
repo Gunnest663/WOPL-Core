@@ -48,6 +48,9 @@ public class UserEntity {
 
     @Column(name = "isAdmin")
     private boolean isAdmin;
+    
+    @Column(name = "isDeveloper")
+    private boolean isDeveloper;
 
     @Column(name = "isLocked")
     private boolean isLocked;
@@ -124,6 +127,14 @@ public class UserEntity {
 
     public void setAdmin(boolean admin) {
         isAdmin = admin;
+    }
+    
+    public boolean isDeveloper() {
+        return isDeveloper;
+    }
+
+    public void setDeveloper(boolean developer) {
+        isDeveloper = developer;
     }
 
     public boolean isLocked() {
